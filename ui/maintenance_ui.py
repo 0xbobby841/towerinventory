@@ -582,6 +582,22 @@ class MaintenanceWindow(QMainWindow):
             action = self.action_combo.currentText()
             quantity = self.quantity_spin.value()
             price = self.price_spin.value()
+
+            # Prevent negative stock for Install actions
+            if action == "Install":
+                # Find current stock for the selected item
+                items = self.db.get_all_inventory_items()
+                current_stock = None
+                for item in items:
+                    if item['item_id'] == item_id:
+                        current_stock = item['stock']
+                        break
+                if current_stock is not None and quantity > current_stock:
+                    raise ValueError(
+                        f"Insufficient stock for this item. Current stock is {current_stock}, "
+                        f"but you are trying to install {quantity}.\n\n"
+                        "Please add inventory first before performing this Install."
+                    )
             
             # Handle service order (optional, free-text label)
             service_id = None
@@ -765,6 +781,17 @@ class MaintenanceWindow(QMainWindow):
     def add_inventory_item(self):
         """Add a new inventory item"""
         try:
+            # If an item is selected, require using Update instead of Add
+            if self.inventory_table.selectedItems():
+                QMessageBox.warning(
+                    self,
+                    "Item Selected",
+                    "An inventory item is currently selected.\n\n"
+                    "Use 'Update Selected' to modify it, or clear the selection "
+                    "before adding a brand new item."
+                )
+                return
+
             name = self.validator.validate_not_empty(
                 self.inv_name_input.text(), "Item name"
             )
@@ -825,7 +852,15 @@ class MaintenanceWindow(QMainWindow):
                 self.load_inventory()
                 QMessageBox.information(self, "Success", "Item deleted successfully!")
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to delete:\n{str(e)}")
+                message = str(e)
+                # Provide a clearer explanation for foreign key failures
+                if "FOREIGN KEY constraint failed" in message:
+                    message = (
+                        "This item has existing transactions and cannot be deleted.\n\n"
+                        "You can leave it in the system (even with stock = 0), or reuse it, "
+                        "but SQLite prevents deleting items that are referenced by history."
+                    )
+                QMessageBox.critical(self, "Error", f"Failed to delete:\n{message}")
     
     def clear_inventory_form(self):
         """Clear the inventory form"""
