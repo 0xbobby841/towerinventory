@@ -27,4 +27,4 @@ sharepoint_config*.txt
 *.csv
 
 # OTHER
-run.bat
+*.bat
