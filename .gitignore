@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.env/
+.venv/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# SQLite databases (contain real data)
+*.db
+
+# Local SharePoint / config files
+sharepoint_config.txt
+sharepoint_config*.txt
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# CSV imports/exports that may contain real addresses/units
+*.csv
