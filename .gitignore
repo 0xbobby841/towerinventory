@@ -25,3 +25,6 @@ sharepoint_config*.txt
 
 # CSV imports/exports that may contain real addresses/units
 *.csv
+
+# OTHER
+run.bat
