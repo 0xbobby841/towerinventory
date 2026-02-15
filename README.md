@@ -1,248 +1,179 @@
-# 🗼 Tower Inventory Management System - UPDATED
+# 🗼 Tower Inventory Management System
 
-## ✅ What's Included & Ready
+Modern desktop app for tracking inventory across tower sites, trucks, and other storage locations, and for recording what is installed or removed at specific service addresses/units.
 
-This package has ALL your requested updates:
+Built with **Python 3**, **PySide6**, and **SQLite**.
 
-### Core Files (✅ Complete & Working)
-- `models.py` - Service number validation, apartment validation, location details
-- `utils/snapshot_manager.py` - Sound effects support  
-- `main.py` - Tower branding with logo
-- `assets/` - Logo and sound files
-- `requirements.txt` - Dependencies
+---
 
-### UI Files (⚠️ From Original System)
-The UI files (`maintenance_ui.py` and `office_ui.py`) are from the original system. You have two options:
+## ✨ Features
 
-**Option A: Use As-Is** (Works fine, just missing cosmetic updates)
-- Everything functions correctly
-- Service numbers are optional and validated
-- Just missing: red/black theme, switch mode button, sound effects in UI
+- **Two Modes**
+  - **Maintenance Mode** – full CRUD access:
+    - Manage technicians, inventory, inventory locations, and service address/unit details.
+    - Create transactions (Install / Remove / Repair).
+    - Create service orders (optional).
+    - Publish snapshots to SharePoint.
+  - **Office Mode** – read‑only:
+    - View inventory, transactions, and service orders from an `inventory_snapshot.db`.
+    - Run summary reports and export to CSV.
+    - Pull the latest snapshot from SharePoint.
 
-**Option B: Manual Updates** (Adds polish)
-- Follow the quick updates below to add:
-  - Tower red/black theme
-  - "Switch Mode" button
-  - Sound effects on actions
-  - Larger UI elements
+- **Location Model**
+  - **Inventory Locations** (`locations` table)
+    - Where stock is stored (e.g., “Warehouse A”, “Truck #3”).
+  - **Service Addresses/Units** (`location_details` table)
+    - Where work is performed (e.g., `123 Main St`, `Unit 204`).
+  - Each **transaction** now stores:
+    - Inventory location (where items come from / go back to).
+    - Service address + unit (where items are installed/removed).
 
-## 🚀 Quick Start
+- **Service Orders**
+  - Service numbers are **optional** free‑text labels.
+  - They can be reused and don’t have to exist beforehand.
+  - When a matching service order exists, transactions link to the most recent one.
 
-### 1. Copy Your Database
+- **Validation Helpers**
+  - Apartment/unit number validation (no spaces or slashes).
+  - Service number format helper available but not enforced for existence.
+
+- **Branding & UX**
+  - Tower logo (`towerlogo.png`) used in the mode selector and both main windows.
+  - Success and error sounds on key actions in Maintenance mode.
+  - "Switch Mode" buttons allow jumping between Office and Maintenance without restarting.
+  - Exit buttons in both modes show a confirmation dialog.
+
+---
+
+## 🛠️ Installation
+
+1. **Clone the repository**
+
 ```bash
-# Copy your working.db from the old system
-copy path\to\old\working.db .
+git clone https://github.com/0xbobby841/towerinventory.git
+cd towerinventory
 ```
 
-### 2. Run It!
+2. **Create and activate a virtual environment** (recommended)
+
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+```
+
+3. **Install dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🚀 Running the Application
+
+From the project root:
+
 ```bash
 python main.py
 ```
 
-That's it! The core functionality is ready:
-- ✅ Service numbers optional
-- ✅ Service number format validated (12345-6)
-- ✅ Properties removed
-- ✅ Location details added
-- ✅ Tower branding in mode selector
+You’ll see the **Mode Selection** dialog:
 
-## 🎨 Optional: Add UI Polish (5 minutes)
+- Choose **Maintenance Mode** for full access.
+- Choose **Office Mode** for read‑only / reporting.
+- Configure your **SharePoint sync folder** once; it is stored locally in `sharepoint_config.txt` (ignored by Git).
 
-### A. Add Red/Black Theme
+### Databases
 
-Open `ui/maintenance_ui.py` and `ui/office_ui.py`
+- `working.db`
+  - Live writeable database used in **Maintenance Mode**.
+- `inventory_snapshot.db`
+  - Read‑only snapshot used in **Office Mode**.
+  - Pulled from/pushed to your SharePoint folder via `SnapshotManager`.
 
-In the `init_ui()` method, add this right after `self.setMinimumSize(...)`:
+Both `.db` files are in `.gitignore` so real data is never committed.
 
-```python
-# Tower red/black theme
-self.setStyleSheet("""
-    QMainWindow { background-color: #1a1a1a; }
-    QTabWidget::pane { border: 2px solid #8B0000; background-color: #2b2b2b; }
-    QTabBar::tab { background-color: #3a3a3a; color: white; padding: 12px 24px; }
-    QTabBar::tab:selected { background-color: #8B0000; font-weight: bold; }
-    QLabel { color: white; }
-    QLineEdit, QTextEdit { background-color: #3a3a3a; color: white; border: 2px solid #555; padding: 10px; }
-    QComboBox { background-color: #3a3a3a; color: white; border: 2px solid #555; padding: 10px; }
-    QPushButton { background-color: #8B0000; color: white; padding: 12px 24px; border-radius: 4px; }
-    QPushButton:hover { background-color: #DC143C; }
-    QTableWidget { background-color: #2b2b2b; color: white; border: 2px solid #555; }
-    QHeaderView::section { background-color: #8B0000; color: white; padding: 10px; }
-""")
-```
+---
 
-### B. Add "Switch Mode" Button
+## 🧩 Key Data Model Highlights
 
-In `ui/maintenance_ui.py` and `ui/office_ui.py`, find the header section in `init_ui()`.
+- **Technicians**
+  - `technicians(technician_id, name)`
 
-Add this after the header label:
+- **Inventory Locations**
+  - `locations(location_id, name, address, apartment_number)`
 
-```python
-header_layout.addStretch()
+- **Service Address / Unit Details**
+  - `location_details(detail_id, address, apartment_number)`
 
-# Switch mode button
-switch_btn = QPushButton("← Switch Mode")
-switch_btn.clicked.connect(self.switch_mode)
-header_layout.addWidget(switch_btn)
-```
+- **Inventory Items**
+  - `inventory_items(item_id, name, description, unit_price, stock)`
 
-Then add this method at the end of the class:
+- **Service Orders**
+  - `service_orders(service_id, service_number, address, date_created, technician_id, location_id)`
+  - `service_number` is nullable and non‑unique.
 
-```python
-def switch_mode(self):
-    """Switch back to mode selector"""
-    reply = QMessageBox.question(
-        self, "Switch Mode",
-        "Return to mode selector?",
-        QMessageBox.Yes | QMessageBox.No
-    )
-    
-    if reply == QMessageBox.Yes:
-        self.db.close()
-        self.close()
-        import sys
-        os.execl(sys.executable, sys.executable, *sys.argv)
-```
+- **Transactions**
+  - `transactions` includes:
+    - Foreign keys to item, technician, inventory location, and optional service order.
+    - `action_type` in `('Install', 'Remove', 'Repair')`.
+    - `service_address` and `service_apartment` (copied from the chosen location detail at time of entry).
 
-### C. Add Sound Effects
+The schema is created automatically on startup; simple migrations (via `PRAGMA table_info` + `ALTER TABLE`) keep older databases compatible.
 
-In `ui/maintenance_ui.py`, in the `__init__` method, add:
+---
 
-```python
-from utils.snapshot_manager import SoundManager
-self.sound_manager = SoundManager()
-```
+## 🧭 Usage Overview
 
-Then in `submit_transaction()` and other action methods, add sounds:
+### Maintenance Mode
 
-```python
-# On success:
-self.sound_manager.play_success()
-QMessageBox.information(self, "Success", "Transaction added!")
+- **Technicians tab** – add/remove technicians.
+- **Inventory Items tab** – manage items, stock levels, and pricing.
+- **Locations tab** – define inventory storage locations.
+- **Location Details tab** – define service addresses/units.
+- **New Transaction tab** – record installs/removals/repairs:
+  - Pick technician, inventory location, service address/unit, and item.
+  - Optional service number (free text).
+  - Quantity automatically updates stock.
+- **Service Orders tab** – create and review service orders.
+- **View Transactions tab** – see all transactions with both inventory and service locations.
 
-# On error:
-except Exception as e:
-    self.sound_manager.play_error()
-    QMessageBox.critical(self, "Error", str(e))
-```
+### Office Mode
 
-## 📝 Key Feature Changes
+- **Inventory tab** – view current snapshot of inventory.
+- **Transactions tab** – filter and export transactions, including service locations.
+- **Service Orders tab** – view and export service orders.
+- **Summary Reports tab** – generate aggregate stats by action type, technician, and date range.
+- **Reference Data tab** – read‑only view of technicians and locations.
 
-### Service Numbers
-```python
-# OLD: Required, must exist in database
-# NEW: Optional, format-validated only
+---
 
-# Valid examples:
-"12345-1"   ✓
-"98765-10"  ✓
-"00001-20"  ✓
-""          ✓ (empty is OK!)
+## 🔐 Data & Git Safety
 
-# Invalid examples:
-"1234-1"    ✗ (only 4 digits)
-"12345-21"  ✗ (max is 20)
-"12345"     ✗ (missing format)
-```
+- `*.db`, `*.csv`, and local config files are excluded via `.gitignore`.
+- Use **sample data** via `init_sample_data.py` for testing instead of production data.
+- Never commit real addresses, units, or customer data to the repository.
 
-### Apartment Numbers  
-```python
-# Flexible format - all valid:
-"123"       ✓
-"A"         ✓
-"123-A"     ✓
-"A-1"       ✓
-
-# Invalid:
-"123 A"     ✗ (space not allowed)
-"123/A"     ✗ (slash not allowed)
-```
-
-## 🗂️ Database Schema Changes
-
-### New: location_details table
-```sql
-CREATE TABLE location_details (
-    detail_id INTEGER PRIMARY KEY,
-    address TEXT NOT NULL,
-    apartment_number TEXT
-);
-```
-
-### Updated: service_orders table
-```sql
--- Added apartment_number field
-apartment_number TEXT
-```
-
-### Removed: properties & item_properties tables
-- No more property checkboxes in inventory
-- Simplified data model
-
-## 🎯 Testing Your Updates
-
-1. **Test Service Numbers**:
-   - Create transaction without service number ✓
-   - Create with valid format `12345-5` ✓
-   - Try invalid `1234-1` - should error ✓
-
-2. **Test Location Details**:
-   - Go to Location Details tab
-   - Add address with apartment `123-A` ✓
-
-3. **Test Sounds** (if you added them):
-   - Submit transaction - hear success sound ✓
-   - Try invalid input - hear error sound ✓
-
-4. **Test Mode Switch** (if you added it):
-   - Click "Switch Mode" button ✓
-   - Returns to mode selector ✓
-
-## 📦 What's in This Package
-
-```
-tower_inventory/
-├── main.py                  ✅ Updated - Tower branding
-├── models.py                ✅ Updated - Validation logic
-├── requirements.txt         ✅ Updated
-├── init_sample_data.py      📄 Optional test data
-├── assets/
-│   ├── logo.png            ✅ Tower logo
-│   ├── success.wav         ✅ Success sound
-│   └── error.wav           ✅ Error sound
-├── ui/
-│   ├── maintenance_ui.py   ⚠️ Original (works as-is)
-│   └── office_ui.py        ⚠️ Original (works as-is)
-└── utils/
-    └── snapshot_manager.py ✅ Updated - Sound support
-```
-
-## 🚨 Important Notes
-
-1. **Your data is safe** - The database schema is backward compatible
-2. **UI works without updates** - Polish is optional
-3. **Service numbers are optional** - Format validated when provided
-4. **Properties are gone** - Inventory simplified
-5. **Sounds are optional** - App works without them
+---
 
 ## 🆘 Troubleshooting
 
-### "ModuleNotFoundError: No module named 'PySide6'"
+- **PySide6 not installed**
+
 ```bash
 python -m pip install PySide6
 ```
 
-### "Can't find working.db"
-Copy your `working.db` from the old inventory_system folder to this tower_inventory folder.
+- **App can’t find `working.db`**
+  - It will be created automatically if missing.
+  - If migrating from an older system, copy your existing `working.db` into the project root.
 
-### "Sounds don't play"
-Make sure `assets/success.wav` and `assets/error.wav` exist. Sounds are optional - app works without them.
+- **Snapshot issues**
+  - Check the SharePoint folder path in the mode selector.
+  - Ensure you have read/write access.
 
-### "Invalid service number"
-Format must be `12345-6` (exactly 5 digits, dash, number 1-20). Or leave blank!
+If you run into specific tracebacks, open an issue in the GitHub repo with the error message and steps to reproduce.
 
 ---
 
-**That's it! You're ready to use Tower Inventory Management System!** 🗼
-
-The core functionality you requested is complete and working. The optional UI polish adds the red/black theme and extra features, but everything works great without it too.
+**Tower Inventory Management System is ready for in‑house use with real tower sites, units, and technicians, while keeping your data and configuration out of Git.**
